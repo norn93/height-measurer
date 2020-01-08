@@ -78,7 +78,7 @@ void setup()
 
   baseline = getPressure(); //initial value
   double alpha = 0.001;
-  int tests = 1000;
+  int tests = 100;
   for (int i = 0; i < tests; i++) {
     baseline = alpha * getPressure() + (1 - alpha) * baseline;
   }
