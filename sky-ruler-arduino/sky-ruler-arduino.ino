@@ -21,23 +21,24 @@ double baseline; // baseline pressure
 double a_lpf;
 double a_lpf_alpha = 0.001;
 
-void setup() {
-  Serial.begin(9600);
+// State variables
+volatile char button_pressed = 0;
 
-  // Check that the BMP180 is connected
-  if (!pressure.begin()) {
-    Serial.println("BMP180 allocation failed");
-    for (;;); // Don't proceed, loop forever
+void button_press() {
+  button_pressed = 1;
+}
+
+void blink_code(int n) {
+  for (int i = 0; i < n; i++) {
+    digitalWrite(13, HIGH);
+    delay(500);
+    digitalWrite(13, LOW);
+    delay(500);
   }
+  delay(1000);
+}
 
-  // Check that the display is connected
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Check address for your device
-    Serial.println("SSD1306 allocation failed");
-    for (;;); // Don't proceed, loop forever
-  }
-
-  Serial.println("Initialised successfully!");
-
+void splash_screen() {
   // Splash screen
   display.clearDisplay();
 
@@ -45,17 +46,37 @@ void setup() {
 
   display.setTextSize(2);
   display.setCursor(0, 0);
-  display.print("Top line");
+  display.print(" GCK  SGC");
 
-  display.setTextSize(4);
+  display.setTextSize(3);
   display.setCursor(0, 16);
-  display.print("Main");
-
-  display.setTextSize(2);
-  display.setCursor(0, 48);
-  display.print("Bottom bit");
+  display.print("  Sky   Ruler");
 
   display.display();
+}
+
+void setup() {
+
+  // Attach the hardware interupt
+  attachInterrupt(digitalPinToInterrupt(2), button_press, RISING);
+
+  // Check that the BMP180 is connected
+  if (!pressure.begin()) {
+    //Serial.println("BMP180 allocation failed");
+    blink_code(1);
+    for (;;); // Don't proceed, loop forever
+  }
+
+  // Check that the display is connected
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Check address for your device
+    //Serial.println("SSD1306 allocation failed");
+    blink_code(2);
+    for (;;); // Don't proceed, loop forever
+  }
+
+  // Display the splash screen
+  splash_screen();
+  delay(3000);
 
   // Get the baseline measurement for the pressure sensor
   baseline = getPressure(); //initial value
@@ -68,6 +89,9 @@ void setup() {
 }
 
 void loop() {
+
+  // PRESSURE ////////////////////////////////
+  
   // put your main code here, to run repeatedly:
   double a, P;
 
@@ -84,13 +108,23 @@ void loop() {
 
   char my_string[10];
   dtostrf(a_lpf, 5, 2, my_string);
-  Serial.println(my_string);
 
-  display.clearDisplay();
-  display.setTextSize(4);
-  display.setCursor(0, 16);
-  display.print(my_string);
-  display.display();
+  ////////////////////////////////
+
+  if (button_pressed == 1) {
+    display.clearDisplay();
+    display.setTextSize(4);
+    display.setCursor(0, 16);
+    display.print(my_string);
+    display.display();
+
+    delay(1000);
+
+    display.clearDisplay();
+    display.display();
+    
+    button_pressed = 0;
+  }
 }
 
 double getPressure()
@@ -142,11 +176,11 @@ double getPressure()
         {
           return (P);
         }
-        else Serial.println("error retrieving pressure measurement\n");
+        //else Serial.println("error retrieving pressure measurement\n");
       }
-      else Serial.println("error starting pressure measurement\n");
+      //else Serial.println("error starting pressure measurement\n");
     }
-    else Serial.println("error retrieving temperature measurement\n");
+    //else Serial.println("error retrieving temperature measurement\n");
   }
-  else Serial.println("error starting temperature measurement\n");
+  //else Serial.println("error starting temperature measurement\n");
 }
